@@ -1,46 +1,65 @@
 import openai
 import speech_recognition as sr
 import pyttsx3
+import threading
 from flask import Flask, render_template, request
 import os
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
+
+if not api_key:
+    raise ValueError("ERROR: Missing OpenAI API Key. Add it to a .env file or environment variables.")
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize Text-to-Speech Engine (for voice output)
-engine = pyttsx3.init()
+# Initialize Speech Recognition
+recognizer = sr.Recognizer()
 
-def generate_recipe(ingredients, dietary_restrictions=None):
-    """Generate a healthy recipe using GPT-3/4 based on ingredients and dietary constraints."""
-    prompt = f"Generate a healthy recipe using the following ingredients: {', '.join(ingredients)}."
-    
+# Function to generate recipes using OpenAI API
+def generate_recipe(ingredients, restaurant, chef, dietary_restrictions=None):
+    """Generate a healthy recipe using OpenAI API."""
+    prompt = f"Generate a healthy recipe using these ingredients: {', '.join(ingredients)}."
+
     if dietary_restrictions:
-        prompt += f" Please make sure it is suitable for people with the following dietary restrictions: {dietary_restrictions}."
+        prompt += f" Ensure it suits these dietary restrictions: {dietary_restrictions}."
+
+    if restaurant:
+        prompt += f" The recipe should be inspired by {restaurant} restaurant."
+
+    if chef:
+        prompt += f" Make it in the style of Chef {chef}."
+
+    prompt += " Provide the recipe steps and a short description of its health benefits."
+
+    try:
+        # OpenAI API call
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Use "gpt-4" if available
+            messages=[
+                {"role": "system", "content": "You are a professional chef providing delicious recipes."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500,
+            temperature=0.7,
+        )
+
+        return response["choices"][0]["message"]["content"].strip()
     
-    prompt += " Provide the recipe steps and include a brief description of the health benefits of the dish."
+    except openai.error.OpenAIError as e:
+        return f"Error generating recipe: {str(e)}"
 
-    response = openai.Completion.create(
-        engine="text-davinci-003",  # Use GPT-4 if available
-        prompt=prompt,
-        max_tokens=300,
-        temperature=0.7,
-    )
-
-    return response.choices[0].text.strip()
-
+# Function to handle voice input
 def voice_input():
     """Capture voice input and convert it to text."""
-    recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening for ingredients...")
         recognizer.adjust_for_ambient_noise(source)
         audio = recognizer.listen(source)
-    
+
     try:
         print("Recognizing...")
         return recognizer.recognize_google(audio)
@@ -48,11 +67,17 @@ def voice_input():
         print("Sorry, I did not catch that.")
         return ""
 
+# Function for voice output using threading
 def voice_output(text):
-    """Convert text to voice output."""
-    engine.say(text)
-    engine.runAndWait()
+    """Convert text to voice output in a separate thread."""
+    def speak():
+        engine = pyttsx3.init()
+        engine.say(text)
+        engine.runAndWait()
 
+    threading.Thread(target=speak, daemon=True).start()
+
+# Flask Routes
 @app.route('/')
 def home():
     """Render the homepage."""
@@ -62,19 +87,28 @@ def home():
 def generate():
     """Generate a recipe based on user input."""
     ingredients = request.form['ingredients'].split(',')
+    restaurant = request.form.get('restaurant', '')
+    chef = request.form.get('chef', '')
     dietary_restrictions = request.form.get('dietary_restrictions', '')
-    recipe = generate_recipe(ingredients, dietary_restrictions)
-    voice_output(f"Here is a recipe based on your ingredients: {recipe}")
-    return render_template('recipe.html', recipe=recipe)
+
+    recipe = generate_recipe(ingredients, restaurant, chef, dietary_restrictions)
+    voice_output(f"Here is a recipe from {restaurant} by {chef}: {recipe}")
+    
+    return render_template('recipe.html', recipe=recipe, restaurant=restaurant, chef=chef)
 
 @app.route('/voice_ingredients', methods=['GET'])
 def voice_ingredients():
     """Handle voice input to capture ingredients and display recipes."""
     ingredients = voice_input().split(',')
+    restaurant = "Chef's Choice"
+    chef = "Master Chef"
     dietary_restrictions = 'healthy'  # Default dietary preference
-    recipe = generate_recipe(ingredients, dietary_restrictions)
-    voice_output(f"Here is a recipe based on your ingredients: {recipe}")
-    return render_template('recipe.html', recipe=recipe)
 
+    recipe = generate_recipe(ingredients, restaurant, chef, dietary_restrictions)
+    voice_output(f"Here is a recipe from {restaurant} by {chef}: {recipe}")
+
+    return render_template('recipe.html', recipe=recipe, restaurant=restaurant, chef=chef)
+
+# Run Flask app
 if __name__ == "__main__":
     app.run(debug=True)

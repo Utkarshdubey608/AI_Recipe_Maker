@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookify - AI Recipe Generator</title>
+</head>
+<body>
+    <h1>Welcome to Cookify!</h1>
+    <form action="/generate_recipe" method="post">
+        <label for="ingredients">Enter ingredients (comma-separated):</label>
+        <input type="text" name="ingredients" required>
+        
+        <label for="restaurant">Choose a restaurant style:</label>
+        <input type="text" name="restaurant" placeholder="e.g., Italian Bistro">
+        
+        <label for="chef">Choose a chef:</label>
+        <input type="text" name="chef" placeholder="e.g., Gordon Ramsay">
+        
+        <label for="dietary_restrictions">Dietary Restrictions:</label>
+        <input type="text" name="dietary_restrictions" placeholder="e.g., vegan, gluten-free">
+        
+        <button type="submit">Generate Recipe</button>
+    </form>
+
+    <br>
+    <a href="/voice_ingredients"><button>Use Voice Input</button></a>
+</body>
+</html>
