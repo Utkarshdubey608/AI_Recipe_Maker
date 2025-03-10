@@ -1,114 +1,93 @@
-import openai
-import speech_recognition as sr
-import pyttsx3
-import threading
-from flask import Flask, render_template, request
-import os
-from dotenv import load_dotenv
+from flask import Flask, render_template, request, url_for
 
-# Load environment variables
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+app = Flask(__name__, static_folder="static")
 
-if not api_key:
-    raise ValueError("ERROR: Missing OpenAI API Key. Add it to a .env file or environment variables.")
+# Hardcoded Recipe Database
+RECIPE_DB = {
+    "italian": {
+        "tomato": "🍅 **Tomato Basil Pasta**: Cook pasta and mix with fresh tomato sauce and basil.",
+        "cheese": "🧀 **Four Cheese Pizza**: A crispy pizza with mozzarella, parmesan, ricotta, and gorgonzola.",
+        "chicken": "🍗 **Chicken Parmesan**: Breaded chicken baked with tomato sauce and cheese.",
+        "pasta": "🍝 **Creamy Alfredo Pasta**: Cook pasta and mix with a rich white sauce.",
+        "mushroom": "🍄 **Mushroom Risotto**: Creamy risotto with sautéed mushrooms and parmesan.",
+        "olive": "🫒 **Mediterranean Olive Salad**: Fresh olives, feta, and herbs tossed in olive oil."
+    },
+    "chinese": {
+        "rice": "🍚 **Fried Rice**: Stir-fry rice with soy sauce, eggs, and vegetables.",
+        "chicken": "🐔 **Kung Pao Chicken**: Stir-fried chicken with peanuts and spicy sauce.",
+        "mushroom": "🍄 **Mushroom Stir-Fry**: Sautéed mushrooms with garlic and soy sauce.",
+        "noodles": "🍜 **Chow Mein**: Stir-fried noodles with vegetables and soy sauce.",
+        "tofu": "🥢 **Mapo Tofu**: Spicy Sichuan-style tofu in a rich sauce.",
+        "cabbage": "🥬 **Stir-Fried Cabbage**: Crunchy cabbage tossed with garlic and soy sauce."
+    },
+    "mexican": {
+        "avocado": "🥑 **Guacamole**: Mashed avocado with lime, tomato, and onion.",
+        "chicken": "🌮 **Chicken Tacos**: Grilled chicken in a tortilla with salsa and cheese.",
+        "beans": "🌯 **Burrito Bowl**: Beans, rice, avocado, and grilled veggies in a bowl.",
+        "cheese": "🧀 **Quesadilla**: Cheese-filled tortilla grilled to perfection.",
+        "corn": "🌽 **Elote (Mexican Street Corn)**: Grilled corn with mayo, cheese, and chili powder.",
+        "beef": "🥩 **Carne Asada**: Marinated grilled beef with lime and spices."
+    },
+    "indian": {
+        "rice": "🍛 **Biryani**: Spiced rice with vegetables or chicken.",
+        "chicken": "🍗 **Butter Chicken**: Creamy tomato-based curry with tender chicken.",
+        "lentils": "🥣 **Dal Tadka**: Spiced lentil soup with garlic and ghee.",
+        "potato": "🥔 **Aloo Gobi**: Spiced potato and cauliflower stir-fry.",
+        "paneer": "🧀 **Palak Paneer**: Spinach-based curry with soft paneer cheese.",
+        "chickpeas": "🍛 **Chana Masala**: Spiced chickpea curry with tomatoes and onions."
+    },
+    "american": {
+        "beef": "🍔 **Classic Burger**: Grilled beef patty with cheese, lettuce, and tomato.",
+        "potato": "🍟 **French Fries**: Crispy golden fries with a pinch of salt.",
+        "cheese": "🧀 **Mac & Cheese**: Creamy pasta with melted cheese.",
+        "chicken": "🍗 **BBQ Chicken Wings**: Chicken wings glazed in BBQ sauce.",
+        "egg": "🍳 **Omelet**: Fluffy eggs cooked with cheese and vegetables.",
+        "bacon": "🥓 **Bacon Cheeseburger**: A juicy burger with crispy bacon and melted cheese."
+    }
+}
 
-# Initialize Flask app
-app = Flask(__name__)
+# Function to get recipe images (Fix for url_for issue)
+def get_recipe_images():
+    """Generate image URLs dynamically within Flask's context."""
+    with app.app_context():
+        return {
+            "italian": url_for('static', filename='italian.png'),
+            "chinese": url_for('static', filename='chinese.png'),
+            "mexican": url_for('static', filename='mexican.png'),
+            "indian": url_for('static', filename='indian.png'),
+            "american": url_for('static', filename='american.png')
+        }
 
-# Initialize Speech Recognition
-recognizer = sr.Recognizer()
-
-# Function to generate recipes using OpenAI API
-def generate_recipe(ingredients, restaurant, chef, dietary_restrictions=None):
-    """Generate a healthy recipe using OpenAI API."""
-    prompt = f"Generate a healthy recipe using these ingredients: {', '.join(ingredients)}."
-
-    if dietary_restrictions:
-        prompt += f" Ensure it suits these dietary restrictions: {dietary_restrictions}."
-
-    if restaurant:
-        prompt += f" The recipe should be inspired by {restaurant} restaurant."
-
-    if chef:
-        prompt += f" Make it in the style of Chef {chef}."
-
-    prompt += " Provide the recipe steps and a short description of its health benefits."
-
-    try:
-        # OpenAI API call
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Use "gpt-4" if available
-            messages=[
-                {"role": "system", "content": "You are a professional chef providing delicious recipes."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500,
-            temperature=0.7,
-        )
-
-        return response["choices"][0]["message"]["content"].strip()
+def get_recipe(ingredients, cuisine):
+    """Generate recipe based on user-selected ingredients and cuisine."""
+    cuisine = cuisine.lower()
     
-    except openai.error.OpenAIError as e:
-        return f"Error generating recipe: {str(e)}"
+    if cuisine not in RECIPE_DB:
+        return "⚠️ No recipes available for this cuisine.", url_for('static', filename='default.jpg')
 
-# Function to handle voice input
-def voice_input():
-    """Capture voice input and convert it to text."""
-    with sr.Microphone() as source:
-        print("Listening for ingredients...")
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
+    recipes = [RECIPE_DB[cuisine].get(ingredient.strip().lower(), None) for ingredient in ingredients]
+    recipes = [r for r in recipes if r]  # Filter out None values
 
-    try:
-        print("Recognizing...")
-        return recognizer.recognize_google(audio)
-    except Exception:
-        print("Sorry, I did not catch that.")
-        return ""
+    if not recipes:
+        return "⚠️ Sorry, no recipes found for these ingredients.", url_for('static', filename='default.jpg')
 
-# Function for voice output using threading
-def voice_output(text):
-    """Convert text to voice output in a separate thread."""
-    def speak():
-        engine = pyttsx3.init()
-        engine.say(text)
-        engine.runAndWait()
+    recipe_images = get_recipe_images()  # Get images dynamically
+    return "<br><br>".join(recipes), recipe_images.get(cuisine, url_for('static', filename='default.jpg'))
 
-    threading.Thread(target=speak, daemon=True).start()
-
-# Flask Routes
 @app.route('/')
 def home():
-    """Render the homepage."""
+    """Render homepage."""
     return render_template('index.html')
 
 @app.route('/generate_recipe', methods=['POST'])
 def generate():
-    """Generate a recipe based on user input."""
+    """Generate recipe based on user input."""
     ingredients = request.form['ingredients'].split(',')
-    restaurant = request.form.get('restaurant', '')
-    chef = request.form.get('chef', '')
-    dietary_restrictions = request.form.get('dietary_restrictions', '')
+    cuisine = request.form.get('restaurant', 'italian')
 
-    recipe = generate_recipe(ingredients, restaurant, chef, dietary_restrictions)
-    voice_output(f"Here is a recipe from {restaurant} by {chef}: {recipe}")
+    recipe, image_url = get_recipe(ingredients, cuisine)
     
-    return render_template('recipe.html', recipe=recipe, restaurant=restaurant, chef=chef)
+    return render_template('recipe.html', recipe=recipe, restaurant=cuisine.capitalize(), image_url=image_url)
 
-@app.route('/voice_ingredients', methods=['GET'])
-def voice_ingredients():
-    """Handle voice input to capture ingredients and display recipes."""
-    ingredients = voice_input().split(',')
-    restaurant = "Chef's Choice"
-    chef = "Master Chef"
-    dietary_restrictions = 'healthy'  # Default dietary preference
-
-    recipe = generate_recipe(ingredients, restaurant, chef, dietary_restrictions)
-    voice_output(f"Here is a recipe from {restaurant} by {chef}: {recipe}")
-
-    return render_template('recipe.html', recipe=recipe, restaurant=restaurant, chef=chef)
-
-# Run Flask app
 if __name__ == "__main__":
     app.run(debug=True)

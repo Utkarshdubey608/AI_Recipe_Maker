@@ -3,12 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe Result</title>
+    <title>Generated Recipe</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        /* Custom background */
+        body {
+            background: url('/static/custom-bg.png') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+        }
+
+        .container {
+            max-width: 600px;
+            margin-top: 50px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8); /* Dark overlay */
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .recipe-box {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            color: black;
+        }
+
+        img {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-warning {
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <h1>Your Recipe from {{ restaurant }} by {{ chef }}</h1>
-    <p>{{ recipe }}</p>
-    <br>
-    <a href="/">Back to Home</a>
+    <div class="container">
+        <h2 class="mb-4">🍽️ Your Recipe</h2>
+        <p><strong>Cuisine:</strong> {{ restaurant.capitalize() }}</p>
+        <img src="{{ image_url }}" alt="Dish Image">
+        <div class="recipe-box">
+            <p>{{ recipe|safe }}</p>
+        </div>
+        <a href="/" class="btn btn-warning mt-3">🔙 Back</a>
+    </div>
 </body>
 </html>

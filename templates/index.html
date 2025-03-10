@@ -3,27 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cookify - AI Recipe Generator</title>
+    <title>Recipe Generator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background: url('/static/restaurant-bg.png') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin-top: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .tag {
+            display: inline-block;
+            background: #ff9800;
+            color: white;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .restaurant-box {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+        .restaurant-option {
+            flex: 0 0 auto;
+            width: 120px;
+            height: 120px;
+            position: relative;
+            text-align: center;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #000;
+        }
+        .restaurant-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        /* Updated: Move cuisine label to the top */
+        .restaurant-option span {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7); /* Darker background for visibility */
+            color: white;
+            padding: 8px 0;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .listening {
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0% { color: white; }
+            50% { color: red; }
+            100% { color: white; }
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to Cookify!</h1>
-    <form action="/generate_recipe" method="post">
-        <label for="ingredients">Enter ingredients (comma-separated):</label>
-        <input type="text" name="ingredients" required>
-        
-        <label for="restaurant">Choose a restaurant style:</label>
-        <input type="text" name="restaurant" placeholder="e.g., Italian Bistro">
-        
-        <label for="chef">Choose a chef:</label>
-        <input type="text" name="chef" placeholder="e.g., Gordon Ramsay">
-        
-        <label for="dietary_restrictions">Dietary Restrictions:</label>
-        <input type="text" name="dietary_restrictions" placeholder="e.g., vegan, gluten-free">
-        
-        <button type="submit">Generate Recipe</button>
-    </form>
 
-    <br>
-    <a href="/voice_ingredients"><button>Use Voice Input</button></a>
+    <div class="container text-center">
+        <h2 class="mb-4">🍽️ AI-Powered Recipe Generator</h2>
+
+        <form id="recipe-form" action="/generate_recipe" method="post">
+
+            <div class="mb-3">
+                <label class="form-label">Add Ingredients:</label>
+                <input type="text" id="ingredient-input" class="form-control" placeholder="Type or use voice">
+                <button type="button" id="voice-btn" class="btn btn-warning mt-2"><i class="fas fa-microphone"></i> Speak</button>
+                <div id="ingredient-list"></div>
+                <input type="hidden" name="ingredients" id="hidden-ingredients">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Select Cuisine:</label>
+                <div class="restaurant-box">
+                    <div class="restaurant-option" data-value="italian">
+                        <span>Italian</span>
+                        <img src="/static/italian.png" alt="Italian">
+                    </div>
+                    <div class="restaurant-option" data-value="chinese">
+                        <span>Chinese</span>
+                        <img src="/static/chinese.png" alt="Chinese">
+                    </div>
+                    <div class="restaurant-option" data-value="mexican">
+                        <span>Mexican</span>
+                        <img src="/static/mexican.png" alt="Mexican">
+                    </div>
+                    <div class="restaurant-option" data-value="indian">
+                        <span>Indian</span>
+                        <img src="/static/indian.png" alt="Indian">
+                    </div>
+                    <div class="restaurant-option" data-value="american">
+                        <span>American</span>
+                        <img src="/static/american.png" alt="American">
+                    </div>
+                </div>
+                <input type="hidden" name="restaurant" id="selected-restaurant" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Generate Recipe</button>
+
+        </form>
+    </div>
+
+    <script>
+        const ingredientInput = document.getElementById("ingredient-input");
+        const ingredientList = document.getElementById("ingredient-list");
+        const hiddenIngredients = document.getElementById("hidden-ingredients");
+        const voiceBtn = document.getElementById("voice-btn");
+        const restaurantOptions = document.querySelectorAll(".restaurant-option");
+        const selectedRestaurant = document.getElementById("selected-restaurant");
+        let ingredients = [];
+
+        ingredientInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addIngredient(ingredientInput.value.trim());
+            }
+        });
+
+        function addIngredient(ingredient) {
+            if (ingredient && !ingredients.includes(ingredient)) {
+                ingredients.push(ingredient);
+                let tag = document.createElement("span");
+                tag.className = "tag";
+                tag.textContent = ingredient + " ×";
+                tag.onclick = function() {
+                    ingredients = ingredients.filter(i => i !== ingredient);
+                    tag.remove();
+                    hiddenIngredients.value = ingredients.join(",");
+                };
+                ingredientList.appendChild(tag);
+                hiddenIngredients.value = ingredients.join(",");
+                ingredientInput.value = "";
+            }
+        }
+
+        voiceBtn.addEventListener("click", function() {
+            let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Your browser does not support voice input.");
+                return;
+            }
+
+            let recognition = new SpeechRecognition();
+            recognition.start();
+            voiceBtn.innerHTML = "🎤 Listening...";
+            voiceBtn.classList.add("listening");
+
+            recognition.onresult = function(event) {
+                let spokenText = event.results[0][0].transcript;
+                addIngredient(spokenText);
+                voiceBtn.innerHTML = "🎙️ Speak";
+                voiceBtn.classList.remove("listening");
+            };
+
+            recognition.onerror = function() {
+                voiceBtn.innerHTML = "🎙️ Speak";
+                voiceBtn.classList.remove("listening");
+            };
+        });
+
+        restaurantOptions.forEach(option => {
+            option.addEventListener("click", function() {
+                restaurantOptions.forEach(opt => opt.style.border = "none");
+                this.style.border = "2px solid #ff9800";
+                selectedRestaurant.value = this.dataset.value;
+            });
+        });
+    </script>
+
 </body>
 </html>
