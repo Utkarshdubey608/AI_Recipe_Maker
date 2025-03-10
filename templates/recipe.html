@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,9 +50,42 @@
         <p><strong>Cuisine:</strong> {{ restaurant.capitalize() }}</p>
         <img src="{{ image_url }}" alt="Dish Image">
         <div class="recipe-box">
-            <p>{{ recipe|safe }}</p>
+            <p id="recipe-text">{{ recipe|safe }}</p>
         </div>
+
+        <!-- Buttons -->
+        <button class="btn btn-success mt-3" onclick="speakRecipe()">🔊 Hear Recipe</button>
         <a href="/" class="btn btn-warning mt-3">🔙 Back</a>
+        <button class="btn btn-warning mt-3 ms-2" onclick="speakOrder()">🚚 Deliver</button>
     </div>
+
+    <!-- JavaScript for Speech Synthesis -->
+    <script>
+        function speakRecipe() {
+            let recipeText = document.getElementById('recipe-text').innerText;
+            let speech = new SpeechSynthesisUtterance();
+            speech.text = "Here is your recipe: " + recipeText;
+            speech.lang = "en-US"; 
+            speech.rate = 1;
+            speech.pitch = 1;
+            speech.volume = 1;
+            window.speechSynthesis.speak(speech);
+        }
+
+        function speakOrder() {
+            let orderSpeech = new SpeechSynthesisUtterance("Order placed successfully");
+            orderSpeech.lang = "en-US";
+            orderSpeech.rate = 1;
+            orderSpeech.pitch = 1;
+            orderSpeech.volume = 1;
+            window.speechSynthesis.speak(orderSpeech);
+        }
+
+        // Automatically speak the recipe when the page loads
+        window.onload = function() {
+            speakRecipe();
+        };
+    </script>
 </body>
 </html>
+
