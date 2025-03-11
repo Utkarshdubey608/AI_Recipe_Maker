@@ -82,7 +82,7 @@
 <body>
 
     <div class="container text-center">
-        <h2 class="mb-4">🍽️ AI-Powered Recipe Generator</h2>
+        <h2 class="mb-4">🍽️ AI-Powered Insta Chef</h2>
 
         <form id="recipe-form" action="/generate_recipe" method="post">
 
@@ -103,10 +103,10 @@
                 <div id="allergy-list"></div>
                 <input type="hidden" name="allergies" id="hidden-allergies">
             </div>
-
+            
             <!-- Cuisine Section -->
             <div class="mb-3">
-                <label class="form-label">Select Cuisine:</label>
+                <label class="form-label">Select Restaurant:</label>
                 <div class="restaurant-box">
                     <div class="restaurant-option" data-value="ChickenFeast">
                         <span>CHICKENFEAST</span>
@@ -140,14 +140,14 @@
         const ingredientList = document.getElementById("ingredient-list");
         const hiddenIngredients = document.getElementById("hidden-ingredients");
         let ingredients = [];
-
+    
         ingredientInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 event.preventDefault();
                 addIngredient(ingredientInput.value.trim());
             }
         });
-
+    
         function addIngredient(ingredient) {
             if (ingredient && !ingredients.includes(ingredient)) {
                 ingredients.push(ingredient);
@@ -164,20 +164,20 @@
                 ingredientInput.value = "";
             }
         }
-
+    
         // Allergy Input Logic
         const allergyInput = document.getElementById("allergy-input");
         const allergyList = document.getElementById("allergy-list");
         const hiddenAllergies = document.getElementById("hidden-allergies");
         let allergies = [];
-
+    
         allergyInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 event.preventDefault();
                 addAllergy(allergyInput.value.trim());
             }
         });
-
+    
         function addAllergy(allergy) {
             if (allergy && !allergies.includes(allergy)) {
                 allergies.push(allergy);
@@ -194,11 +194,11 @@
                 allergyInput.value = "";
             }
         }
-
+    
         // Cuisine Selection Logic
         const restaurantOptions = document.querySelectorAll(".restaurant-option");
         const selectedRestaurant = document.getElementById("selected-restaurant");
-
+    
         restaurantOptions.forEach(option => {
             option.addEventListener("click", function() {
                 restaurantOptions.forEach(opt => opt.classList.remove("selected"));
@@ -206,17 +206,28 @@
                 selectedRestaurant.value = this.dataset.value;
             });
         });
-
+    
         // Voice Recognition for Allergy
         const allergyVoiceBtn = document.getElementById("allergy-voice-btn");
         allergyVoiceBtn.addEventListener("click", function() {
-            let recognition = new webkitSpeechRecognition();
+            let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             recognition.start();
             recognition.onresult = function(event) {
                 addAllergy(event.results[0][0].transcript);
             };
         });
+    
+        // Voice Recognition for Ingredients
+        const ingredientVoiceBtn = document.getElementById("voice-btn");
+        ingredientVoiceBtn.addEventListener("click", function() {
+            let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.start();
+            recognition.onresult = function(event) {
+                addIngredient(event.results[0][0].transcript);
+            };
+        });
     </script>
+    
 
 </body>
 </html>
