@@ -29,7 +29,6 @@ pyinstaller-hooks-contrib==2025.1
 pypiwin32==223
 python-dotenv==1.0.1
 pyttsx3==2.98
-pywin32==309
 pywin32-ctypes==0.2.3
 setuptools==75.8.2
 smmap==5.0.2
