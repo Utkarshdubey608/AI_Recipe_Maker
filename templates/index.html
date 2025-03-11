@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,12 +53,11 @@
             object-fit: cover;
             border-radius: 10px;
         }
-        /* Updated: Move cuisine label to the top */
         .restaurant-option span {
             position: absolute;
             top: 0;
             width: 100%;
-            background: rgba(0, 0, 0, 0.7); /* Darker background for visibility */
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             padding: 8px 0;
             font-size: 14px;
@@ -76,6 +74,9 @@
             50% { color: red; }
             100% { color: white; }
         }
+        .selected {
+            border: 2px solid #ff9800;
+        }
     </style>
 </head>
 <body>
@@ -85,6 +86,7 @@
 
         <form id="recipe-form" action="/generate_recipe" method="post">
 
+            <!-- Ingredients Section -->
             <div class="mb-3">
                 <label class="form-label">Add Ingredients:</label>
                 <input type="text" id="ingredient-input" class="form-control" placeholder="Type or use voice">
@@ -93,45 +95,50 @@
                 <input type="hidden" name="ingredients" id="hidden-ingredients">
             </div>
 
+            <!-- Allergies Section -->
+            <div class="mb-3">
+                <label class="form-label">Add Allergies:</label>
+                <input type="text" id="allergy-input" class="form-control" placeholder="Type or use voice">
+                <button type="button" id="allergy-voice-btn" class="btn btn-danger mt-2"><i class="fas fa-microphone"></i> Speak</button>
+                <div id="allergy-list"></div>
+                <input type="hidden" name="allergies" id="hidden-allergies">
+            </div>
+
+            <!-- Cuisine Section -->
             <div class="mb-3">
                 <label class="form-label">Select Cuisine:</label>
                 <div class="restaurant-box">
-                    <div class="restaurant-option" data-value="italian">
-                        <span>ChickenFeast</span>
-                        <img src="/static/italian.png" alt="Italian">
+                    <div class="restaurant-option" data-value="ChickenFeast">
+                        <span>CHICKENFEAST</span>
+                        <img src="/static/italian.png" alt="Chicken Feast">
                     </div>
-                    <div class="restaurant-option" data-value="chinese">
-                        <span>WowChina!</span>
-                        <img src="/static/chinese.png" alt="Chinese">
+                    <div class="restaurant-option" data-value="WowChina!">
+                        <span>WOWCHINA!</span>
+                        <img src="/static/chinese.png" alt="Wow China">
                     </div>
-                    <div class="restaurant-option" data-value="mexican">
-                        <span>Ovenstory</span>
-                        <img src="/static/mexican.png" alt="Mexican">
+                    <div class="restaurant-option" data-value="OvenStory">
+                        <span>OVENSTORY</span>
+                        <img src="/static/mexican.png" alt="Oven Story">
                     </div>
-                    <div class="restaurant-option" data-value="indian">
-                        <span>Haldiram</span>
-                        <img src="/static/indian.png" alt="Indian">
-                    </div>
-                    <div class="restaurant-option" data-value="american">
-                        <span>HamBurger</span>
-                        <img src="/static/american.png" alt="American">
+                    <div class="restaurant-option" data-value="Haldiram">
+                        <span>HALDIRAM</span>
+                        <img src="/static/indian.png" alt="Haldiram">
                     </div>
                 </div>
                 <input type="hidden" name="restaurant" id="selected-restaurant" required>
             </div>
 
+            <!-- Submit Button -->
             <button type="submit" class="btn btn-primary">Generate Recipe</button>
 
         </form>
     </div>
 
     <script>
+        // Ingredient Input Logic
         const ingredientInput = document.getElementById("ingredient-input");
         const ingredientList = document.getElementById("ingredient-list");
         const hiddenIngredients = document.getElementById("hidden-ingredients");
-        const voiceBtn = document.getElementById("voice-btn");
-        const restaurantOptions = document.querySelectorAll(".restaurant-option");
-        const selectedRestaurant = document.getElementById("selected-restaurant");
         let ingredients = [];
 
         ingredientInput.addEventListener("keypress", function(event) {
@@ -158,37 +165,56 @@
             }
         }
 
-        voiceBtn.addEventListener("click", function() {
-            let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Your browser does not support voice input.");
-                return;
+        // Allergy Input Logic
+        const allergyInput = document.getElementById("allergy-input");
+        const allergyList = document.getElementById("allergy-list");
+        const hiddenAllergies = document.getElementById("hidden-allergies");
+        let allergies = [];
+
+        allergyInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addAllergy(allergyInput.value.trim());
             }
-
-            let recognition = new SpeechRecognition();
-            recognition.start();
-            voiceBtn.innerHTML = "🎤 Listening...";
-            voiceBtn.classList.add("listening");
-
-            recognition.onresult = function(event) {
-                let spokenText = event.results[0][0].transcript;
-                addIngredient(spokenText);
-                voiceBtn.innerHTML = "🎙️ Speak";
-                voiceBtn.classList.remove("listening");
-            };
-
-            recognition.onerror = function() {
-                voiceBtn.innerHTML = "🎙️ Speak";
-                voiceBtn.classList.remove("listening");
-            };
         });
+
+        function addAllergy(allergy) {
+            if (allergy && !allergies.includes(allergy)) {
+                allergies.push(allergy);
+                let tag = document.createElement("span");
+                tag.className = "tag";
+                tag.textContent = allergy + " ×";
+                tag.onclick = function() {
+                    allergies = allergies.filter(i => i !== allergy);
+                    tag.remove();
+                    hiddenAllergies.value = allergies.join(",");
+                };
+                allergyList.appendChild(tag);
+                hiddenAllergies.value = allergies.join(",");
+                allergyInput.value = "";
+            }
+        }
+
+        // Cuisine Selection Logic
+        const restaurantOptions = document.querySelectorAll(".restaurant-option");
+        const selectedRestaurant = document.getElementById("selected-restaurant");
 
         restaurantOptions.forEach(option => {
             option.addEventListener("click", function() {
-                restaurantOptions.forEach(opt => opt.style.border = "none");
-                this.style.border = "2px solid #ff9800";
+                restaurantOptions.forEach(opt => opt.classList.remove("selected"));
+                this.classList.add("selected");
                 selectedRestaurant.value = this.dataset.value;
             });
+        });
+
+        // Voice Recognition for Allergy
+        const allergyVoiceBtn = document.getElementById("allergy-voice-btn");
+        allergyVoiceBtn.addEventListener("click", function() {
+            let recognition = new webkitSpeechRecognition();
+            recognition.start();
+            recognition.onresult = function(event) {
+                addAllergy(event.results[0][0].transcript);
+            };
         });
     </script>
 

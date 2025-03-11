@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +6,6 @@
     <title>Generated Recipe</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        /* Custom background */
         body {
             background: url('/static/custom-bg.png') no-repeat center center fixed;
             background-size: cover;
@@ -19,7 +16,7 @@
             max-width: 600px;
             margin-top: 50px;
             text-align: center;
-            background: rgba(0, 0, 0, 0.8); /* Dark overlay */
+            background: rgba(0, 0, 0, 0.8);
             padding: 20px;
             border-radius: 10px;
         }
@@ -31,6 +28,7 @@
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
             margin-top: 20px;
             color: black;
+            text-align: left;
         }
 
         img {
@@ -42,50 +40,289 @@
         .btn-warning {
             font-weight: bold;
         }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .nutrition-box {
+            margin-top: 20px;
+            background-color:rgb(12, 13, 13);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .nutrition-box p {
+            margin: 5px 0;
+        }
+
+        .nutrition-box h5 {
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2 class="mb-4">🍽️ Your Recipe</h2>
-        <p><strong>Cuisine:</strong> {{ restaurant.capitalize() }}</p>
         <img src="{{ image_url }}" alt="Dish Image">
         <div class="recipe-box">
-            <p id="recipe-text">{{ recipe|safe }}</p>
+            <p><strong>Cuisine:</strong></p>
+            <form id="orderForm">
+                {% for recipe in recipe.split('<br><br>') %}
+                <div>
+                    <input type="radio" name="recipe" value="{{ recipe.split(':')[0].strip() }}" onclick="showNutrition(this.value)">
+                    {{ recipe }}
+                </div>
+                {% endfor %}
+            </form>
+        </div>
+        
+
+        <!-- Nutritional Info -->
+        <div id="nutritionInfo" class="nutrition-box hidden">
+            <h5>🥗 Nutritional Information</h5>
+            <p><strong>Calories:</strong> <span id="calories">-</span> 480kcal</p>
+            <p><strong>Protein:</strong> <span id="protein">-</span> 32</p>
+            <p><strong>Carbs:</strong> <span id="carbs">-</span> 28</p>
+            <p><strong>Fat:</strong> <span id="fat">-</span> 21</p>
+            <p><strong>💡 Tip:</strong> <span id="tip">🍛 High energy meal! Perfect for lunch.</span></p>
         </div>
 
         <!-- Buttons -->
-        <button class="btn btn-success mt-3" onclick="speakRecipe()">🔊 Hear Recipe</button>
-        <a href="/" class="btn btn-warning mt-3">🔙 Back</a>
-        <button class="btn btn-warning mt-3 ms-2" onclick="speakOrder()">🚚 Deliver</button>
+        <div class="btn-container">
+            <a href="/" class="btn btn-warning">🔙 Back</a>
+            <button class="btn btn-warning" onclick="placeOrder()">🚚 Deliver</button>
+        </div>
     </div>
 
-    <!-- JavaScript for Speech Synthesis -->
+    <!-- JavaScript -->
     <script>
-        function speakRecipe() {
-            let recipeText = document.getElementById('recipe-text').innerText;
-            let speech = new SpeechSynthesisUtterance();
-            speech.text = "Here is your recipe: " + recipeText;
-            speech.lang = "en-US"; 
-            speech.rate = 1;
-            speech.pitch = 1;
-            speech.volume = 1;
-            window.speechSynthesis.speak(speech);
-        }
-
-        function speakOrder() {
-            let orderSpeech = new SpeechSynthesisUtterance("Order placed successfully");
-            orderSpeech.lang = "en-US";
-            orderSpeech.rate = 1;
-            orderSpeech.pitch = 1;
-            orderSpeech.volume = 1;
-            window.speechSynthesis.speak(orderSpeech);
-        }
-
-        // Automatically speak the recipe when the page loads
-        window.onload = function() {
-            speakRecipe();
+        const nutritionData = {
+            "Butter Chicken": {
+                calories: 480,
+                protein: 32,
+                carbs: 28,
+                fat: 21,
+                tip: "💪 Perfect for Muscle Gain!",
+                recipe: "🍗 **Butter Chicken**: Creamy tomato-based curry with tender chicken."
+            },
+            "Biryani": {
+                calories: 600,
+                protein: 35,
+                carbs: 70,
+                fat: 15,
+                tip: "🍛 High energy meal! Perfect for lunch.",
+                recipe: "🍛 **Biryani**: Spiced rice with vegetables or chicken."
+            },
+            "Paneer Tikka": {
+                calories: 300,
+                protein: 25,
+                carbs: 15,
+                fat: 18,
+                tip: "🧀 Great source of protein! Perfect snack.",
+                recipe: "🧀 **Paneer Tikka**: Grilled paneer marinated with spices and yogurt."
+            },
+            "Chole Bhature": {
+                calories: 700,
+                protein: 20,
+                carbs: 90,
+                fat: 30,
+                tip: "🍛 High calorie! Eat in moderation.",
+                recipe: "🍛 **Chole Bhature**: Spiced chickpeas served with fried bread."
+            },
+            "Tomato Basil Pasta": {
+                calories: 450,
+                protein: 14,
+                carbs: 58,
+                fat: 12,
+                tip: "🍝 Light meal with refreshing flavors.",
+                recipe: "🍅 **Tomato Basil Pasta**: Cook pasta and mix with fresh tomato sauce and basil."
+            },
+            "Four Cheese Pizza": {
+                calories: 780,
+                protein: 42,
+                carbs: 92,
+                fat: 32,
+                tip: "🧀 Heavy calorie meal! Perfect for cheat day.",
+                recipe: "🧀 **Four Cheese Pizza**: A crispy pizza with mozzarella, parmesan, ricotta, and gorgonzola."
+            },
+            "Chicken Parmesan": {
+                calories: 650,
+                protein: 50,
+                carbs: 40,
+                fat: 22,
+                tip: "🍗 High protein! Great post-workout meal.",
+                recipe: "🍗 **Chicken Parmesan**: Breaded chicken baked with tomato sauce and cheese."
+            },
+            "Creamy Alfredo Pasta": {
+                calories: 550,
+                protein: 20,
+                carbs: 60,
+                fat: 25,
+                tip: "🍝 Rich in taste, moderate calories.",
+                recipe: "🍝 **Creamy Alfredo Pasta**: Cook pasta and mix with a rich white sauce."
+            },
+            "Mushroom Risotto": {
+                calories: 470,
+                protein: 15,
+                carbs: 50,
+                fat: 18,
+                tip: "🍄 Perfect comfort food with creamy texture.",
+                recipe: "🍄 **Mushroom Risotto**: Creamy risotto with sautéed mushrooms and parmesan."
+            },
+            "Mediterranean Olive Salad": {
+                calories: 220,
+                protein: 5,
+                carbs: 18,
+                fat: 14,
+                tip: "🫒 Light and refreshing! Great appetizer.",
+                recipe: "🫒 **Mediterranean Olive Salad**: Fresh olives, feta, and herbs tossed in olive oil."
+            },
+            "Fried Rice": {
+                calories: 420,
+                protein: 12,
+                carbs: 60,
+                fat: 10,
+                tip: "🍚 Quick meal with balanced nutrition.",
+                recipe: "🍚 **Fried Rice**: Stir-fry rice with soy sauce, eggs, and vegetables."
+            },
+            "Kung Pao Chicken": {
+                calories: 530,
+                protein: 45,
+                carbs: 32,
+                fat: 20,
+                tip: "🐔 High protein! Great for muscle recovery.",
+                recipe: "🐔 **Kung Pao Chicken**: Stir-fried chicken with peanuts and spicy sauce."
+            },
+            "Mushroom Stir-Fry": {
+                calories: 300,
+                protein: 10,
+                carbs: 40,
+                fat: 12,
+                tip: "🍄 Low calorie meal! Perfect for dinner.",
+                recipe: "🍄 **Mushroom Stir-Fry**: Sautéed mushrooms with garlic and soy sauce."
+            },
+            "Chow Mein": {
+                calories: 550,
+                protein: 18,
+                carbs: 70,
+                fat: 15,
+                tip: "🍜 Perfect quick meal with high carbs.",
+                recipe: "🍜 **Chow Mein**: Stir-fried noodles with vegetables and soy sauce."
+            },
+            "Mapo Tofu": {
+                calories: 320,
+                protein: 24,
+                carbs: 20,
+                fat: 16,
+                tip: "🥢 Rich in plant protein! Great vegan choice.",
+                recipe: "🥢 **Mapo Tofu**: Spicy Sichuan-style tofu in a rich sauce."
+            },
+            "Chicken Tacos": {
+                calories: 480,
+                protein: 40,
+                carbs: 45,
+                fat: 15,
+                tip: "🌮 Good balanced meal! High protein.",
+                recipe: "🌮 **Chicken Tacos**: Grilled chicken in a tortilla with salsa and cheese."
+            },
+            "Quesadilla": {
+                calories: 600,
+                protein: 25,
+                carbs: 55,
+                fat: 30,
+                tip: "🧀 Heavy calorie snack! Best on cheat day.",
+                recipe: "🧀 **Quesadilla**: Cheese-filled tortilla grilled to perfection."
+            },
+            "Burrito Bowl": {
+                calories: 750,
+                protein: 45,
+                carbs: 80,
+                fat: 20,
+                tip: "🌯 Heavy and high energy meal.",
+                recipe: "🌯 **Burrito Bowl**: Beans, rice, avocado, and grilled veggies in a bowl."
+            },
+            "French Fries": {
+                calories: 365,
+                protein: 4,
+                carbs: 48,
+                fat: 18,
+                tip: "🍟 Crispy and delicious! Limit consumption.",
+                recipe: "🍟 **French Fries**: Crispy golden fries with a pinch of salt."
+            },
+            "BBQ Chicken Wings": {
+                calories: 720,
+                protein: 55,
+                carbs: 35,
+                fat: 40,
+                tip: "🍗 High protein meal! Great for dinner.",
+                recipe: "🍗 **BBQ Chicken Wings**: Chicken wings glazed in BBQ sauce."
+            },
+            "Omelet": {
+                calories: 240,
+                protein: 20,
+                carbs: 5,
+                fat: 18,
+                tip: "🍳 Quick high-protein breakfast.",
+                recipe: "🍳 **Omelet**: Fluffy eggs cooked with cheese and vegetables."
+            },
+            "Bacon Cheeseburger": {
+                calories: 900,
+                protein: 55,
+                carbs: 70,
+                fat: 45,
+                tip: "🥓 High calorie! Enjoy occasionally.",
+                recipe: "🥓 **Bacon Cheeseburger**: A juicy burger with crispy bacon and melted cheese."
+            }
         };
+    
+        function showNutrition(recipe) {
+            // Trim the recipe name to avoid space issues
+            recipe = recipe.trim();
+    
+            // Check if the recipe exists in nutritionData
+            if (nutritionData.hasOwnProperty(recipe)) {
+                document.getElementById('nutritionInfo').classList.remove('hidden');
+                document.getElementById('calories').textContent = nutritionData[recipe].calories;
+                document.getElementById('protein').textContent = nutritionData[recipe].protein;
+                document.getElementById('carbs').textContent = nutritionData[recipe].carbs;
+                document.getElementById('fat').textContent = nutritionData[recipe].fat;
+                document.getElementById('tip').textContent = nutritionData[recipe].tip;
+            } else {
+                // Handle when nutrition data is not available
+                document.getElementById('nutritionInfo').classList.remove('hidden');
+                document.getElementById('calories').textContent = "";
+                document.getElementById('protein').textContent = "";
+                document.getElementById('carbs').textContent = "";
+                document.getElementById('fat').textContent = "";
+                document.getElementById('tip').textContent = "🍛 High energy meal! Perfect for lunch.!!";
+            }
+        }
+    
+        function placeOrder() {
+            let selectedRecipe = document.querySelector('input[name="recipe"]:checked');
+            if (!selectedRecipe) {
+                alert("❌ Please select a recipe before placing an order.");
+                return;
+            }
+    
+            let orderSpeech = new SpeechSynthesisUtterance("Order placed successfully for " + selectedRecipe.value);
+            window.speechSynthesis.speak(orderSpeech);
+            alert("✅ Order placed successfully for: " + selectedRecipe.value);
+        }
     </script>
+    
 </body>
 </html>
-
